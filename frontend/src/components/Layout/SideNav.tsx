@@ -159,7 +159,7 @@ const SideNav: React.FC<SideNavProps> = ({
                   icon={
                     <>
                       <Tooltip.Trigger>
-                        <TrashIconOutline className='n-size-token-7' />
+                        <TrashIconOutline className='n-size-token-7'/>
                       </Tooltip.Trigger>
                       <Tooltip.Content>{tooltips.clearChat}</Tooltip.Content>
                     </>

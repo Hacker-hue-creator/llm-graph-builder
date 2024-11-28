@@ -72,79 +72,78 @@ const PageLayout: React.FC<PageLayoutProp> = () => {
       const session = localStorage.getItem('neo4j.connection');
       const environment = process.env.VITE_ENV;
       const isDev = environment === 'DEV';
-      // Fetch backend health status
       try {
-        const response = await healthStatus();
-        setIsBackendConnected(response.data.healthy);
-      } catch (error) {
-        setIsBackendConnected(false);
-      }
-      // To set the disconnect button state
-      const handleDisconnectButtonState = (isModalOpen: boolean) => {
-        setShowDisconnectButton(isModalOpen);
-        localStorage.setItem('disconnectButtonState', isModalOpen ? 'true' : 'false');
-      };
-      // To parse and set user credentials from session
-      const setUserCredentialsFromSession = (neo4jConnection: string) => {
-        if (!neo4jConnection) {
-          console.error('Invalid session data:', neo4jConnection);
-          return;
-        }
         try {
-          const parsedConnection = JSON.parse(neo4jConnection);
-          if (
-            parsedConnection.uri &&
-            parsedConnection.user &&
-            parsedConnection.password &&
-            parsedConnection.database
-          ) {
-            setUserCredentials({
-              uri: parsedConnection.uri,
-              userName: parsedConnection.user,
-              password: atob(parsedConnection.password),
-              database: parsedConnection.database,
-            });
-            setGdsActive(parsedConnection.isGDS);
-            setIsReadOnlyUser(parsedConnection.isReadOnlyUser);
-          } else {
-            console.error('Invalid parsed session data:', parsedConnection);
-          }
+          const response = await healthStatus();
+          setIsBackendConnected(response.data.healthy);
         } catch (error) {
-          console.error('Failed to parse session data:', error);
+          setIsBackendConnected(false);
         }
-      };
-      // To update credentials if environment values differ
-      const updateSessionIfNeeded = (envCredentials: UserCredentials, storedSession: string) => {
-        try {
-          const storedCredentials = JSON.parse(storedSession);
-          const isDiffCreds =
-            envCredentials.uri !== storedCredentials.uri ||
-            envCredentials.userName !== storedCredentials.user ||
-            btoa(envCredentials.password) !== storedCredentials.password ||
-            envCredentials.database !== storedCredentials.database;
-          if (isDiffCreds) {
-            setUserCredentials(envCredentials);
-            localStorage.setItem(
-              'neo4j.connection',
-              JSON.stringify({
-                uri: envCredentials.uri,
-                user: envCredentials.userName,
-                password: btoa(envCredentials.password),
-                database: envCredentials.database,
-                userDbVectorIndex: 384,
-                isReadOnlyUser: envCredentials.isReadonlyUser,
-                isGDS: envCredentials.isGds,
-              })
-            );
-            return true;
+        // To set the disconnect button state
+        const handleDisconnectButtonState = (isModalOpen: boolean) => {
+          setShowDisconnectButton(isModalOpen);
+          localStorage.setItem('disconnectButtonState', isModalOpen ? 'true' : 'false');
+        };
+        // To parse and set user credentials from session
+        const setUserCredentialsFromSession = (neo4jConnection: string) => {
+          if (!neo4jConnection) {
+            console.error('Invalid session data:', neo4jConnection);
+            return;
           }
-          return false;
-        } catch (error) {
-          console.error('Failed to update session:', error);
-          return false;
-        }
-      };
-      try {
+          try {
+            const parsedConnection = JSON.parse(neo4jConnection);
+            if (
+              parsedConnection.uri &&
+              parsedConnection.user &&
+              parsedConnection.password &&
+              parsedConnection.database
+            ) {
+              setUserCredentials({
+                uri: parsedConnection.uri,
+                userName: parsedConnection.user,
+                password: atob(parsedConnection.password),
+                database: parsedConnection.database,
+              });
+              setGdsActive(parsedConnection.isGDS);
+              setIsReadOnlyUser(parsedConnection.isReadOnlyUser);
+            } else {
+              console.error('Invalid parsed session data:', parsedConnection);
+            }
+          } catch (error) {
+            console.error('Failed to parse session data:', error);
+          }
+        };
+        // To update credentials if environment values differ
+        const updateSessionIfNeeded = (envCredentials: UserCredentials, storedSession: string) => {
+          try {
+            const storedCredentials = JSON.parse(storedSession);
+            const isDiffCreds =
+              envCredentials.uri !== storedCredentials.uri ||
+              envCredentials.userName !== storedCredentials.user ||
+              btoa(envCredentials.password) !== storedCredentials.password ||
+              envCredentials.database !== storedCredentials.database;
+            if (isDiffCreds) {
+              setUserCredentials(envCredentials);
+              localStorage.setItem(
+                'neo4j.connection',
+                JSON.stringify({
+                  uri: envCredentials.uri,
+                  user: envCredentials.userName,
+                  password: btoa(envCredentials.password),
+                  database: envCredentials.database,
+                  userDbVectorIndex: 384,
+                  isReadOnlyUser: envCredentials.isReadonlyUser,
+                  isGDS: envCredentials.isGds,
+                })
+              );
+              return true;
+            }
+            return false;
+          } catch (error) {
+            console.error('Failed to update session:', error);
+            return false;
+          }
+        };
         // Handle case where session exists
         if (session && isDev) {
           let backendApiResponse;
@@ -161,7 +160,7 @@ const PageLayout: React.FC<PageLayoutProp> = () => {
             };
             const updated = updateSessionIfNeeded(envCredentials, session);
             if (!updated) {
-              setUserCredentialsFromSession(session); // Using stored session if no update is needed
+              setUserCredentialsFromSession(session); // Use stored session if no update is needed
             }
             setConnectionStatus(Boolean(connectionData.data.graph_connection));
             setIsBackendConnected(true);
@@ -170,18 +169,11 @@ const PageLayout: React.FC<PageLayoutProp> = () => {
             console.error('Error in DEV session handling:', error);
             handleDisconnectButtonState(true);
             setOpenConnection((prev) => ({ ...prev, openPopUp: true }));
-            setErrorMessage(backendApiResponse?.data.error);
+            setErrorMessage(backendApiResponse?.data?.error);
           }
-        } else {
-          // For PROD, picking the session values
-          setUserCredentialsFromSession(session as string);
-          setConnectionStatus(true);
-          setIsBackendConnected(true);
-          handleDisconnectButtonState(true);
-          return;
         }
-        // Handle case where no session exists
-        if (isDev) {
+        // DEV environment without session
+        else if (isDev && !session) {
           let envAPiResponse;
           try {
             envAPiResponse = await envConnectionAPI();
@@ -214,13 +206,21 @@ const PageLayout: React.FC<PageLayoutProp> = () => {
             console.error('Error in DEV no-session handling:', error);
             handleDisconnectButtonState(true);
             setOpenConnection((prev) => ({ ...prev, openPopUp: true }));
-            setErrorMessage(envAPiResponse?.data.error);
+            setErrorMessage(envAPiResponse?.data?.error);
           }
-        } else {
-          // For PROD: Open modal to manually connect
-          handleDisconnectButtonState(true);
-          setOpenConnection((prev) => ({ ...prev, openPopUp: true }));
-          setIsBackendConnected(false);
+        }
+        // PROD environment
+        else {
+          if (session) {
+            setUserCredentialsFromSession(session);
+            setConnectionStatus(true);
+            setIsBackendConnected(true);
+            handleDisconnectButtonState(true);
+          } else {
+            handleDisconnectButtonState(true);
+            setOpenConnection((prev) => ({ ...prev, openPopUp: true }));
+            setIsBackendConnected(false);
+          }
         }
       } catch (error) {
         console.error('Error in initializeConnection:', error);
